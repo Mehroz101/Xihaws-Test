@@ -2,9 +2,6 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createUser, findUserByEmail } from "../models/user";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 export const signup = async (req: Request, res: Response) => {
   try {

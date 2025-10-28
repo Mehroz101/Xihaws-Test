@@ -1,14 +1,14 @@
+import dotenv from "dotenv";
+
+dotenv.config();
 import express, { Response } from "express";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes";
 import siteRoutes from "./routes/siteRoutes";
 import aiRoutes from "./routes/aiRoutes";
-import { configDotenv } from "dotenv";
 import { setupSwagger } from "./config/swagger";
 
-configDotenv()
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
