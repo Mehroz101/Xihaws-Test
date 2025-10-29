@@ -3,8 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "@/components/ReduxProvider";
 import AuthInitializer from "@/components/AuthInitializer";
-import { DarkModeProvider } from "@/contexts/DarkModeContext";
 import { Toaster } from "react-hot-toast";
+import { Providers } from "@/contexts/DarkModeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,24 +21,24 @@ export const metadata: Metadata = {
   description: "A modern website directory with smart categorization and AI-powered descriptions",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <DarkModeProvider>
+        <Providers>
           <ReduxProvider>
             <AuthInitializer>
               {children}
               <Toaster position="top-right" />
             </AuthInitializer>
           </ReduxProvider>
-        </DarkModeProvider>
+        </Providers>
       </body>
     </html>
   );
