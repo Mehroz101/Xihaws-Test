@@ -1,72 +1,76 @@
-# Smart Link Website - Backend
+# Smart Link — Fullstack README
 
-A Node.js/Express backend for the Smart Link Website that allows admins to manage website links with AI-generated descriptions and image uploads.
+This document contains **complete README** files for both Backend and Frontend of the *Smart Link* project. Paste each section into the respective repo root (`backend/README.md`, `frontend/README.md`) or keep this single file for reference.
 
-## Features
+---
 
-- **User Authentication**: JWT-based authentication with role-based access control
-- **Site Management**: CRUD operations for website links
-- **AI Integration**: Google Gemini AI for automatic description generation
-- **Image Upload**: Cloudinary integration for cover image management
-- **Database**: PostgreSQL for data persistence
+# Backend README (backend/README.md)
 
-## Tech Stack
+## Smart Link Website - Backend
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **Authentication**: JWT (jsonwebtoken)
-- **AI**: Google Gemini AI
-- **Image Storage**: Cloudinary
-- **Language**: TypeScript
+A Node.js / Express backend for the Smart Link Website that allows admins to manage website links with AI-generated descriptions and image uploads.
 
-## Prerequisites
+### Features
 
-- Node.js (v16 or higher)
-- PostgreSQL database
-- Cloudinary account
-- Google Gemini API key
+* JWT-based authentication with role-based access (admin / user)
+* CRUD for website links (siteUrl, title, coverImage, description, category)
+* Google Gemini (or other LLM) integration to generate short descriptions
+* Cloudinary image uploads for coverImage
+* PostgreSQL persistence (SQL or via ORM like Prisma/TypeORM)
+* Swagger (OpenAPI) documentation available at `/api-docs`
+* Robust input validation & error handling
+* Useful scripts for dev & production
 
-## Installation
+### Tech stack
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd backend
-   ```
+* Node.js, Express
+* TypeScript
+* PostgreSQL
+* Prisma or TypeORM (suggested)
+* Cloudinary
+* JWT (jsonwebtoken)
+* Swagger (swagger-ui-express + swagger-jsdoc)
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+---
 
-3. **Set up environment variables**
-   Create a `.env` file in the root directory:
-   ```env
-   # Database Configuration
-   DATABASE_URL=postgresql://username:password@localhost:5432/smart_links_db
-   
-   # JWT Configuration
-   JWT_SECRET=your_jwt_secret_key_here
-   
-   # Cloudinary Configuration
-   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-   
-   # Google Gemini AI Configuration
-   GEMINI_API_KEY=your_gemini_api_key
-   
-   # Server Configuration
-   PORT=3001
-   NODE_ENV=development
-   ```
+## Quickstart
 
-4. **Set up the database**
-   ```sql
-   CREATE DATABASE smart_links_db;
-   
-   -- Users table
+### Prerequisites
+
+* Node.js v16+
+* PostgreSQL running
+* Cloudinary account
+* Gemini (or LLM) API Key
+
+### Install
+
+```bash
+git clone <repo-url>
+cd backend
+npm install
+```
+
+### Environment
+
+Create `.env` with:
+
+```env
+DATABASE_URL=postgresql://user:pass@localhost:5432/smart_links_db
+JWT_SECRET=your_jwt_secret
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+GEMINI_API_KEY=...
+PORT=3001
+NODE_ENV=development
+```
+
+### DB Setup (example SQL)
+
+```sql
+CREATE DATABASE smart_links_db;
+-- Use your ORM migration instead of raw SQL in production
+-- Users table
    CREATE TABLE users (
      id SERIAL PRIMARY KEY,
      username VARCHAR(50) UNIQUE NOT NULL,
@@ -88,201 +92,205 @@ A Node.js/Express backend for the Smart Link Website that allows admins to manag
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    );
-   ```
-
-5. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-## API Documentation
-
-The API includes comprehensive Swagger documentation that provides interactive testing capabilities.
-
-### Accessing Swagger UI
-
-Once the server is running, you can access the Swagger documentation at:
-
-- **Swagger UI**: `http://localhost:3001/api-docs`
-- **Swagger JSON**: `http://localhost:3001/api-docs.json`
-
-### Features
-
-- **Interactive Testing**: Test all API endpoints directly from the browser
-- **Authentication**: Built-in JWT token authentication testing
-- **Request/Response Examples**: See example requests and responses for each endpoint
-- **Schema Validation**: View detailed data models and validation rules
-- **Error Handling**: Comprehensive error response documentation
-
-### Using Swagger UI
-
-1. **Authentication**: 
-   - First, use the `/api/auth/login` endpoint to get a JWT token
-   - Click the "Authorize" button in Swagger UI
-   - Enter your token in the format: `Bearer <your-jwt-token>`
-
-2. **Testing Endpoints**:
-   - Expand any endpoint to see its details
-   - Click "Try it out" to test the endpoint
-   - Fill in the required parameters and request body
-   - Click "Execute" to send the request
-
-3. **File Uploads**:
-   - For image upload endpoints, use the file upload feature in Swagger UI
-   - Select your image file and execute the request
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/signup` - Create a new user account
-- `POST /api/auth/login` - User login
-
-### Site Management (Admin only)
-- `GET /api/sites` - Get all sites
-- `GET /api/sites/:id` - Get site by ID
-- `POST /api/sites` - Create new site
-- `POST /api/sites/with-image` - Create site with image upload
-- `PUT /api/sites/:id` - Update site
-- `PUT /api/sites/:id/with-image` - Update site with image upload
-- `DELETE /api/sites/:id` - Delete site
-
-### Image Upload (Admin only)
-- `POST /api/sites/upload-image` - Upload image only
-
-### AI Description Generation (Admin only)
-- `POST /api/ai/generate-description` - Generate description using AI
-
-## Request/Response Examples
-
-### Create Site
-```bash
-POST /api/sites
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "title": "Google",
-  "siteUrl": "https://google.com",
-  "category": "Technology",
-  "coverImage": "https://example.com/image.jpg"
-}
 ```
 
-### Generate AI Description
-```bash
-POST /api/ai/generate-description
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
+   
+   
 
-{
-  "title": "Google",
-  "category": "Technology"
-}
+### Run Dev
+
+```bash
+npm run dev
+# uses ts-node-dev / nodemon to restart on change
 ```
 
-### Upload Image
-```bash
-POST /api/sites/upload-image
-Authorization: Bearer <jwt_token>
-Content-Type: multipart/form-data
+### Build & Run Prod
 
-image: <file>
+```bash
+npm run build
+npm start
 ```
 
-## Database Schema
+### Scripts
 
-### Users Table
-- `id`: Primary key
-- `username`: Unique username
-- `email`: Unique email address
-- `password`: Hashed password
-- `role`: User role ('admin' or 'user')
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
+* `npm run dev` - start dev server
+* `npm run build` - compile TypeScript
+* `npm start` - start compiled server
+* `npm run migrate` - run DB migrations (if using Prisma/TypeORM)
 
-### Sites Table
-- `id`: Primary key
-- `site_url`: Website URL
-- `title`: Site title
-- `cover_image`: Cover image URL (optional)
-- `description`: AI-generated description
-- `category`: Site category
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
+---
 
-## Security Features
+## API (high level)
 
-- Password hashing with bcryptjs
-- JWT token authentication
-- Role-based access control
-- Input validation and sanitization
-- File upload security (type and size validation)
+* `POST /api/auth/signup` — create user
+* `POST /api/auth/login` — login (returns JWT)
+* `GET /api/sites` — list public sites
+* `GET /api/sites/:id` — get site details
+* `POST /api/sites` — create site (admin)
+* `PUT /api/sites/:id` — update site (admin)
+* `DELETE /api/sites/:id` — delete site (admin)
+* `POST /api/sites/upload-image` — upload cover image (admin)
+* `POST /api/ai/generate-description` — generate description using AI (admin)
 
-## Error Handling
+All protected routes require `Authorization: Bearer <token>`.
 
-The API includes comprehensive error handling for:
-- Authentication failures
-- Validation errors
-- Database errors
-- File upload errors
-- AI service errors
+---
 
-## Development
+## Swagger (OpenAPI)
 
-### Available Scripts
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Start production server
+We use `swagger-jsdoc` + `swagger-ui-express`.
 
-### API Documentation
-- Access Swagger UI at `http://localhost:3001/api-docs` when the server is running
-- Interactive API testing and documentation available
+* Swagger UI: `http://localhost:3001/api-docs`
+* JSON: `http://localhost:3001/api-docs.json`
 
-### Testing
-```bash
-# Test Cloudinary connection
-node test-cloudinary.js
-```
+**Notes:** Add JSDoc comments above controllers or generate from routes to keep docs current.
+
+---
+
+## Security & Best Practices
+
+* Hash passwords (bcryptjs) with salt
+* Validate payloads (zod / joi / class-validator)
+* Limit image upload sizes, validate mime types
+* Rate limiting on auth endpoints
+* Keep secrets in environment or a secrets manager
+
+---
 
 ## Deployment
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+1. Build: `npm run build`
+2. Set production env vars
 
-2. **Set production environment variables**
-   - Update database URL for production
-   - Set secure JWT secret
-   - Configure production Cloudinary settings
-   - Set production Gemini API key
 
-3. **Start the production server**
-   ```bash
-   npm start
-   ```
+---
 
-## Environment Variables Reference
+## Troubleshooting
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `JWT_SECRET` | Secret key for JWT tokens | Yes |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | Yes |
-| `CLOUDINARY_API_KEY` | Cloudinary API key | Yes |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret | Yes |
-| `GEMINI_API_KEY` | Google Gemini API key | Yes |
-| `PORT` | Server port (default: 3001) | No |
-| `NODE_ENV` | Environment (development/production) | No |
+* If Cloudinary upload fails: check credentials and allowed file types
+* If AI fails: check Gemini API key and request quotas
+* DB connection: ensure `DATABASE_URL` points to reachable DB host
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+# Frontend README (frontend/README.md)
 
-## License
+## Smart Link Website - Frontend
 
-This project is licensed under the ISC License.
+A Next.js + Tailwind CSS frontend for the Smart Link project. Uses React Query / SWR for caching, `next-themes` for dark mode, and Redux Toolkit for global state.
+
+### Features
+
+* Responsive UI (desktop, tablet, mobile)
+* Dark mode with toggle (uses `next-themes`)
+* Server-state caching (React Query) for fast UIs 
+* Debounced search inputs to reduce API calls
+* Card-based listing of links (coverImage, title, description, category)
+* Accessibility-friendly (keyboard focus, alt text)
+* Image lazy-loading and optimized sizes
+* Basic client-side routing using Next.js
+* Placeholder / skeleton loading states
+
+---
+
+## Quickstart
+
+### Prerequisites
+
+* Node.js v18+
+* Environment variable: `NEXT_PUBLIC_API_URL` (e.g. `http://localhost:3001`)
+
+### Install
+
+```bash
+git clone <repo-url>
+cd frontend
+npm install
+```
+
+### Local Run
+
+```bash
+npm run dev
+# open http://localhost:3000
+```
+
+### Build & Start
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## Key Implementation Notes (how features were implemented)
+
+### Dark Mode
+
+* Uses `next-themes`.
+* Wrap your app in `<ThemeProvider attribute="class" />`.
+* Toggle sets `theme` -> adds `class="dark"` on `<html>`.
+* Tailwind `darkMode: 'class'` is configured.
+
+**Usage example**:
+
+```tsx
+import { useTheme } from 'next-themes';
+const { theme, setTheme } = useTheme();
+<button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>Toggle</button>
+```
+
+### Debounced Search
+
+* Use `useDebounce` hook or lodash `debounce`.
+* Debounce input to 300–500ms before firing API calls.
+
+Example hook:
+
+```ts
+import { useEffect, useState } from 'react';
+export function useDebounce<T>(value: T, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+```
+
+### Caching & Server State
+
+* Recommended: **React Query** (TanStack Query) for caching, background refetching, and mutations.
+* Alternative: **SWR**.
+
+Example React Query use:
+
+```ts
+const queryClient = new QueryClient();
+const { data } = useQuery(['sites', filters], () => fetchSites(filters));
+```
+
+###  PWA
+create PWA for mobile devices 
+
+
+### Accessibility & Performance
+
+* Use `loading="lazy"` on images
+* Use skeleton loaders for lists
+* Provide `alt` text for images
+* Use responsive images via `srcset` if possible
+
+---
+
+
+
+
+## Deployment
+
+* Build static assets: `npm run build`
+* Host on Vercel, Netlify, or any static host
+* Ensure `NEXT_PUBLIC_API_URL` is set to backend production URL
+
