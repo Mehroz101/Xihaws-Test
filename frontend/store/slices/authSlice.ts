@@ -66,7 +66,12 @@ export const loadUserFromStorage = createAsyncThunk(
       }
 
       return rejectWithValue('No user found in storage');
-    } catch (error) {
+    } catch (error: unknown) {
+      // Log the caught error and return a useful message for the thunk
+      console.error('Failed to load user from storage', error);
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
       return rejectWithValue('Failed to load user from storage');
     }
   }

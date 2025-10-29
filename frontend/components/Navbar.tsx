@@ -66,51 +66,51 @@ export default function Navbar() {
               Home
             </NavLink>
 
-            {/* {user ? ( */}
-            {/* <>
-                {user.role === 'admin' && ( */}
-            <NavLink href="/dashboard">
-              <Shield className="w-4 h-4 inline mr-1" />
-              Admin Dashboard
-            </NavLink>
-            {/* )} */}
+            {user ? (
+              <>
+                {user.role === 'admin' && (
+                  <NavLink href="/dashboard">
+                    <Shield className="w-4 h-4 inline mr-1" />
+                    Admin Dashboard
+                  </NavLink>
+                )}
 
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-                <User className="w-4 h-4" />
-                <span className="hidden lg:inline">{'Guest'}</span>
-                <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
-                  {'guest'}
-                </span>
-              </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                    <User className="w-4 h-4" />
+                    <span className="hidden lg:inline">{user.username}</span>
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                      {user.role}
+                    </span>
+                  </div>
 
-              <DarkModeToggle />
+                  <DarkModeToggle />
 
-              <button
-                onClick={handleLogout}
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                <span className="hidden lg:inline">Logout</span>
-              </button>
-            </div>
-            {/* </> */}
-            {/* ) : ( */}
-            <div className="flex items-center space-x-3">
-              <DarkModeToggle />
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
+                  >
+                    <LogOut className="w-4 h-4 mr-1" />
+                    <span className="hidden lg:inline">Logout</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <DarkModeToggle />
 
-              {/* <NavLink href="/login">
+                {/* <NavLink href="/login">
                   Login
                 </NavLink> */}
-              <Link
-                href="/login"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                onClick={closeMobileMenu}
-              >
-                Login
-              </Link>
-            </div>
-            {/* )} */}
+                <Link
+                  href="/login"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  Login
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -193,6 +193,6 @@ export default function Navbar() {
           </div>
         )}
       </nav>
-    </header >
+    </header>
   );
 }

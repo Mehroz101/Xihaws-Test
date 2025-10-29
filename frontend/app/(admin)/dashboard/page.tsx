@@ -1,40 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { useRouter } from 'next/navigation';
 import StatsOverview from '@/components/admin/StatsOverview';
 import LinksManager from '@/components/admin/LinksManager';
-import AddLinkForm from '@/components/admin/AddLinkForm';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function AdminDashboard() {
   const { user, isLoading: authLoading } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'links' | 'add'>('overview');
 
-  // useEffect(() => {
-  //   if (!authLoading && (!user || user.role !== 'admin')) {
-  //     router.push('/');
-  //   }
-  // }, [user, authLoading, router]);
+  useEffect(() => {
+    if (!authLoading && (user?.role !== 'admin')) {
+      router.push('/');
+    }
+  }, [user, authLoading, router]);
 
-  // if (authLoading) {
-  //   return (
-  //     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-  //       <LoadingSpinner size="lg" />
-  //     </div>
-  //   );
-  // }
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
-  // if (!user || user.role !== 'admin') {
-  //   return null;
-  // }
+  if (user?.role !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -54,9 +51,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-
-
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <StatsOverview />

@@ -18,6 +18,9 @@ app.use("/api/ai", aiRoutes);
 // Setup Swagger documentation
 setupSwagger(app);
 
-app.get("/", (_:unknown, res:Response) => res.send("Smart Link API running ✅"));
+app.get("/", (_: unknown, res: Response) => res.send("Smart Link API running ✅"));
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`
+  🚀 Server running on port ${PORT}
+    ${process.env.NODE_ENV === 'development' ? `\n  📚 Swagger docs at http://localhost:${PORT}/api-docs` : ''}
+  `));
