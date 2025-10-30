@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Edit2, Trash2, ExternalLink, Search, Plus, Image, Sparkles, Upload, X } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
+import { fetchSites, deleteSite, createSite } from '@/store/slices/sitesSlice';
+import { Edit2, Trash2, ExternalLink, Search, Plus, Image as LucideImage, Sparkles, Upload, X } from 'lucide-react';
 
 interface SiteLink {
   id: string;
@@ -15,8 +18,8 @@ interface SiteLink {
 }
 
 export default function LinksManager() {
-  const [links, setLinks] = useState<SiteLink[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useDispatch<AppDispatch>();
+  const { filteredSites, isLoading } = useSelector((state: RootState) => state.sites);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -32,59 +35,27 @@ export default function LinksManager() {
   });
 
   useEffect(() => {
-    // Mock data - replace with actual API call
-    const mockLinks: SiteLink[] = [
-      {
-        id: '1',
-        siteUrl: 'https://google.com',
-        title: 'Google Search',
-        coverImage: 'https://via.placeholder.com/150',
-        description: 'The most popular search engine worldwide providing comprehensive search results',
-        category: 'Technology',
-        createdAt: '2024-01-15',
-        updatedAt: '2024-01-15',
-      },
-      {
-        id: '2',
-        siteUrl: 'https://github.com',
-        title: 'GitHub',
-        coverImage: 'https://via.placeholder.com/150',
-        description: 'Platform for version control and collaboration for developers',
-        category: 'Development',
-        createdAt: '2024-01-10',
-        updatedAt: '2024-01-12',
-      },
-    ];
+    dispatch(fetchSites());
+  }, [dispatch]);
 
-    setTimeout(() => {
-      setLinks(mockLinks);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+  useEffect(() => {
+    dispatch({ type: 'sites/setSearchTerm', payload: searchTerm });
+  }, [searchTerm, dispatch]);
 
-  const filteredLinks = links.filter(link =>
-    link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    link.siteUrl.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    link.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this link?')) {
-      // TODO: Implement delete API call
-      setLinks(links.filter(link => link.id !== id));
+      dispatch(deleteSite(id));
     }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         alert('Please select an image file');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
@@ -117,10 +88,6 @@ export default function LinksManager() {
     setIsGeneratingDescription(true);
 
     try {
-      // TODO: Replace with actual Gemini AI API call
-      const prompt = `Write a concise, engaging description (max 150 characters) for a website called "${newLink.title}" with URL ${newLink.siteUrl} in the ${newLink.category} category.`;
-
-      // Mock AI API call
       setTimeout(() => {
         const mockDescriptions = [
           `A powerful ${newLink.category.toLowerCase()} platform offering innovative solutions and seamless user experience.`,
@@ -144,13 +111,11 @@ export default function LinksManager() {
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
     if (!newLink.siteUrl || !newLink.title || !newLink.category || !newLink.description) {
       alert('Please fill in all required fields');
       return;
     }
 
-    // Validate URL format
     try {
       new URL(newLink.siteUrl);
     } catch {
@@ -158,16 +123,7 @@ export default function LinksManager() {
       return;
     }
 
-    // Create new link object
-    const linkToAdd: SiteLink = {
-      ...newLink,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // TODO: Implement API call to add link
-    setLinks(prev => [linkToAdd, ...prev]);
+    dispatch(createSite(newLink));
     setShowAddModal(false);
     resetForm();
   };
@@ -217,7 +173,6 @@ export default function LinksManager() {
 
   return (
     <div>
-      {/* Header with Search and Add Button */}
       <div className="flex justify-between items-center mb-6 mt-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manage Links</h2>
         <div className="flex items-center space-x-4">
@@ -241,9 +196,8 @@ export default function LinksManager() {
         </div>
       </div>
 
-      {/* Links Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredLinks.length === 0 ? (
+        {filteredSites.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 dark:text-gray-500">
               <ExternalLink className="mx-auto h-12 w-12 mb-4" />
@@ -276,7 +230,7 @@ export default function LinksManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredLinks.map((link) => (
+                {filteredSites.map((link) => (
                   <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -288,7 +242,7 @@ export default function LinksManager() {
                           />
                         ) : (
                           <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center mr-3">
-                            <Image className="h-5 w-5 text-gray-400" />
+                            <LucideImage className="h-5 w-5 text-gray-400" />
                           </div>
                         )}
                         <div>
@@ -330,7 +284,7 @@ export default function LinksManager() {
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(link.id)}
+                          onClick={() => handleDelete(Number(link.id))}
                           className="text-red-600 hover:text-red-900 dark:hover:text-red-400 transition-colors"
                           title="Delete"
                         >
@@ -346,7 +300,6 @@ export default function LinksManager() {
         )}
       </div>
 
-      {/* Add Link Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -357,7 +310,6 @@ export default function LinksManager() {
             </div>
 
             <form onSubmit={handleAddLink} className="p-6 space-y-6">
-              {/* Website URL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Website URL *
@@ -372,7 +324,6 @@ export default function LinksManager() {
                 />
               </div>
 
-              {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Title *
@@ -387,13 +338,11 @@ export default function LinksManager() {
                 />
               </div>
 
-              {/* Cover Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Cover Image
                 </label>
 
-                {/* Image Preview */}
                 {imagePreview && (
                   <div className="mb-4 relative">
                     <img
@@ -411,7 +360,6 @@ export default function LinksManager() {
                   </div>
                 )}
 
-                {/* Upload Area */}
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                   <input
                     type="file"
@@ -438,7 +386,6 @@ export default function LinksManager() {
                 </div>
               </div>
 
-              {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Category *
@@ -456,7 +403,6 @@ export default function LinksManager() {
                 </select>
               </div>
 
-              {/* Description with AI Generation */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -487,7 +433,6 @@ export default function LinksManager() {
                 </p>
               </div>
 
-              {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"

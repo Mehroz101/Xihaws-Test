@@ -1,31 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Eye, Link2, Users, Activity } from 'lucide-react';
+import { Link2, Users } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
-interface DashboardStats {
-  totalLinks: number;
-  usersCount: number;
+interface StatCardProps {
+  icon: React.ElementType;
+  label: string;
+  value: number;
+  color: string;
 }
 
-export default function StatsOverview() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Mock data - replace with actual API call
-    const mockStats: DashboardStats = {
-      totalLinks: 24,
-      usersCount: 156,
-    };
-
-    setTimeout(() => {
-      setStats(mockStats);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  const StatCard = ({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) => (
+function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
+  return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center">
         <div className={`p-3 rounded-lg ${color}`}>
@@ -34,17 +21,25 @@ export default function StatsOverview() {
         <div className="ml-4">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</p>
           <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-            {isLoading ? '...' : value.toLocaleString()}
+            {value.toLocaleString()}
           </p>
         </div>
       </div>
     </div>
   );
+}
+
+export default function StatsOverview() {
+  const { sites, isLoading } = useSelector((state: RootState) => state.sites);
+  const stats = {
+    totalLinks: sites.length,
+    usersCount: 0, // TODO: Replace with actual users count from store if available
+  };
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(2)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
@@ -66,19 +61,16 @@ export default function StatsOverview() {
         <StatCard
           icon={Link2}
           label="Total Links"
-          value={stats?.totalLinks || 0}
+          value={stats.totalLinks}
           color="bg-blue-500"
         />
-
         <StatCard
           icon={Users}
           label="Total Users"
-          value={stats?.usersCount || 0}
+          value={stats.usersCount}
           color="bg-orange-500"
         />
       </div>
-
-
     </div>
   );
 }
