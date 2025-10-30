@@ -1,48 +1,52 @@
 # Smart Link Frontend
 
+[https://smartlink-seven.vercel.app/](https://smartlink-seven.vercel.app/)
+
 A modern Next.js frontend for the Smart Link website directory application built according to XIHawks specifications.
 
 ## Features
 
-- **Authentication**: User login and signup with JWT tokens
-- **Site Directory**: Browse and search through categorized websites
-- **Admin Panel**: Complete CRUD operations for site management
-- **AI Integration**: AI-powered description generation using Google Gemini
-- **Responsive Design**: Mobile-first design with Styled Components
-- **Modern UI**: Clean, intuitive interface with custom styling
+* **Authentication**: User login and signup with JWT tokens
+* **Site Directory**: Browse and search through categorized websites
+* **Admin Panel**: Complete CRUD operations for site management
+* **AI Integration**: AI-powered description generation using Google Gemini
+* **Responsive Design**: Mobile-first design with Styled Components
+* **Modern UI**: Clean, intuitive interface with custom styling
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript
-- **Styling**: Styled Components (as per requirements)
-- **State Management**: Redux Toolkit (as per requirements)
-- **Forms**: React Hook Form
-- **HTTP Client**: Axios
-- **AI Integration**: Google Gemini API
+* **Framework**: Next.js 16 with App Router
+* **Language**: TypeScript
+* **Styling**: Styled Components
+* **State Management**: Redux Toolkit
+* **HTTP Client**: Axios
+* **AI Integration**: Google Gemini API
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
-- Backend API running on port 3001
+* Node.js 18+
+* npm or yarn
+* Backend API running on port 3001
 
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create environment file:
+
 ```bash
 # Create .env.local file
-echo "NEXT_PUBLIC_API_URL=http://localhost:3001/api" > .env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3001/api" > .env
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -69,8 +73,6 @@ frontend/
 │   └── slices/
 │       ├── authSlice.ts   # Authentication state management
 │       └── sitesSlice.ts  # Sites state management
-├── styles/               # Styled Components
-│   └── GlobalStyles.ts   # Global styles and components
 ├── hooks/               # Custom React hooks
 │   └── useAuthInitialization.ts
 ├── lib/                 # Utility libraries
@@ -84,59 +86,65 @@ frontend/
 
 The frontend communicates with the backend API through the service layer in `lib/api.ts`. The API includes:
 
-- **Authentication**: Login and signup endpoints
-- **Sites**: CRUD operations for website links
-- **Image Upload**: Cloudinary integration for cover images
+* **Authentication**: Login and signup endpoints
+* **Sites**: CRUD operations for website links
+* **Image Upload**: Cloudinary integration for cover images
 
 ## Authentication
 
 The app uses JWT tokens for authentication. Users can:
 
-- Sign up for new accounts
-- Log in with email and password
-- Access admin features if they have admin role
-- Automatic token refresh and logout on expiration
+* Sign up for new accounts
+* Log in with email and password
+* Access admin features if they have admin role
+* Automatic token refresh and logout on expiration
 
 ## Admin Features
 
 Admin users can:
 
-- Add new website links
-- Edit existing sites
-- Delete sites
-- Upload cover images
-- Manage categories
+* Add new website links
+* Edit existing sites
+* Delete sites
+* Upload cover images
+* Manage categories
 
 ## Responsive Design
 
 The application is fully responsive and works on:
 
-- Desktop computers
-- Tablets
-- Mobile phones
+* Desktop computers
+* Tablets
+* Mobile phones
 
 ## Development
 
 ### Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+* `npm run dev` - Start development server
+* `npm run build` - Build for production
+* `npm run start` - Start production server
+* `npm run lint` - Run ESLint
 
 ### Code Style
 
-- TypeScript for type safety
-- ESLint for code quality
-- Prettier for code formatting
-- Tailwind CSS for styling
+* TypeScript for type safety
+* ESLint for code quality
+* Prettier for code formatting
 
 ## Deployment
 
-The application can be deployed to:
+### Recommended: Vercel
 
-- Vercel (recommended for Next.js)
-- Netlify
-- Any Node.js hosting platform
+1. Push your project to a GitHub repository.
+2. Go to [Vercel](https://vercel.com/) and import your repository.
+3. Configure the environment variable.
+4. Deploy with default Next.js settings.
 
-Make sure to set the `NEXT_PUBLIC_API_URL` environment variable to point to your backend API.
+Vercel automatically detects Next.js and builds it optimally for production.
+
+### Alternative Options
+
+* **Netlify**: Supports Next.js with serverless functions.
+* **Node Hosting**: You can also deploy using any Node.js hosting provider (e.g., Render, DigitalOcean).
+
