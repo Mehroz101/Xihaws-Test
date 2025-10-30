@@ -8,12 +8,12 @@ export interface User {
 export interface Site {
   id: number;
   title: string;
-  siteUrl: string;
+  site_url: string;
   category: string;
-  coverImage?: string;
+  cover_image?: string;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthResponse {

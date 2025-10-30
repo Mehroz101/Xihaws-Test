@@ -1,10 +1,10 @@
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary } from "cloudinary";
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
-  api_key: process.env.CLOUDINARY_API_KEY || '',
-  api_secret: process.env.CLOUDINARY_API_SECRET || '',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
+  api_key: process.env.CLOUDINARY_API_KEY || "",
+  api_secret: process.env.CLOUDINARY_API_SECRET || "",
 });
 
 export interface CloudinaryUploadResult {
@@ -25,22 +25,22 @@ export class CloudinaryService {
    */
   static async uploadImage(
     file: Buffer | string,
-    folder: string = 'smart-links'
+    folder: string = "smart-links"
   ): Promise<CloudinaryUploadResult> {
     try {
       const uploadOptions = {
         folder,
-        resource_type: 'image' as const,
+        resource_type: "image" as const,
         transformation: [
-          { width: 800, height: 600, crop: 'fill', quality: 'auto' },
-          { fetch_format: 'auto' }
-        ]
+          { width: 800, height: 600, crop: "fill", quality: "auto" },
+          { fetch_format: "auto" },
+        ],
       };
 
       let uploadResult;
       if (Buffer.isBuffer(file)) {
         uploadResult = await cloudinary.uploader.upload(
-          `data:image/jpeg;base64,${file.toString('base64')}`,
+          `data:image/jpeg;base64,${file.toString("base64")}`,
           uploadOptions
         );
       } else {
@@ -53,10 +53,26 @@ export class CloudinaryService {
         width: uploadResult.width,
         height: uploadResult.height,
         format: uploadResult.format,
-        resource_type: uploadResult.resource_type
+        resource_type: uploadResult.resource_type,
       };
-    } catch (error) {
-      throw new Error(`Cloudinary upload failed: ${error}`);
+    } catch (error: any) {
+      let message = "Unknown Cloudinary error";
+      if (error.response) {
+        // Cloudinary sends detailed error response here
+        message =
+          error.response.data?.error?.message ||
+          JSON.stringify(error.response.data);
+      } else if (error.message) {
+        message = error.message;
+      } else {
+        try {
+          message = JSON.stringify(error);
+        } catch {
+          message = String(error);
+        }
+      }
+
+      throw new Error(`Cloudinary upload failed: ${message}`);
     }
   }
 
@@ -68,7 +84,7 @@ export class CloudinaryService {
   static async deleteImage(publicId: string): Promise<boolean> {
     try {
       const result = await cloudinary.uploader.destroy(publicId);
-      return result.result === 'ok';
+      return result.result === "ok";
     } catch (error) {
       throw new Error(`Cloudinary delete failed: ${error}`);
     }
@@ -96,8 +112,8 @@ export class CloudinaryService {
   ): string {
     return cloudinary.url(publicId, {
       ...transformations,
-      quality: 'auto',
-      fetch_format: 'auto'
+      quality: "auto",
+      fetch_format: "auto",
     });
   }
 }

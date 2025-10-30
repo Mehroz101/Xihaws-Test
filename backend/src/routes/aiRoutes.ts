@@ -47,24 +47,24 @@ const router = express.Router();
  */
 router.post("/generate-description", jwtAuth(["admin"]), async (req, res) => {
   try {
-    const { title, category } = req.body;
-    
-    if (!title || !category) {
-      return res.status(400).json({ 
-        message: "Title and category are required" 
+    const { title, category, link } = req.body;
+
+    if (!title || !category || !link) {
+      return res.status(400).json({
+        message: "Title, category, and link are required"
       });
     }
 
-    const description = await generateDescription(title, category);
-    
+    const description = await generateDescription(title, category, link);
+
     res.json({
       success: true,
       description
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Failed to generate description", 
-      error: error instanceof Error ? error.message : error 
+    res.status(500).json({
+      message: "Failed to generate description",
+      error: error instanceof Error ? error.message : error
     });
   }
 });

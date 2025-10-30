@@ -15,7 +15,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/sites", siteRoutes);
 app.use("/api/ai", aiRoutes);
 
-// Setup Swagger documentation
 setupSwagger(app);
 
 app.get("/", (_: unknown, res: Response) => res.send("Smart Link API running ✅"));

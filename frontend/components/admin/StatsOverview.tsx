@@ -33,14 +33,12 @@ export default function StatsOverview() {
   const { sites, isLoading } = useSelector((state: RootState) => state.sites);
   const stats = {
     totalLinks: sites.length,
-    usersCount: 0, // TODO: Replace with actual users count from store if available
   };
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(2)].map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
               <div className="ml-4 space-y-2">
@@ -49,7 +47,6 @@ export default function StatsOverview() {
               </div>
             </div>
           </div>
-        ))}
       </div>
     );
   }
@@ -64,12 +61,7 @@ export default function StatsOverview() {
           value={stats.totalLinks}
           color="bg-blue-500"
         />
-        <StatCard
-          icon={Users}
-          label="Total Users"
-          value={stats.usersCount}
-          color="bg-orange-500"
-        />
+      
       </div>
     </div>
   );
