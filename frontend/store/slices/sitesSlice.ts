@@ -10,7 +10,7 @@ interface SitesState {
   generatedescription: string;
   error: string | null;
   searchTerm: string;
-  selectedCategory: string;
+  categoryFilter: string | null; // Changed from selectedCategory to categoryFilter
   categories: string[];
 }
 
@@ -22,7 +22,7 @@ const initialState: SitesState = {
   isCreateLoading: false,
   error: null,
   searchTerm: '',
-  selectedCategory: '',
+  categoryFilter: null, // Initialize as null instead of empty string
   categories: [],
 };
 
@@ -103,8 +103,13 @@ const sitesSlice = createSlice({
       state.searchTerm = action.payload;
       filterSites(state);
     },
-    setSelectedCategory: (state, action: PayloadAction<string>) => {
-      state.selectedCategory = action.payload;
+    setCategoryFilter: (state, action: PayloadAction<string | null>) => { // Changed to accept null
+      state.categoryFilter = action.payload;
+      filterSites(state);
+    },
+    clearFilters: (state) => { // Added clear filters action
+      state.searchTerm = '';
+      state.categoryFilter = null;
       filterSites(state);
     },
     clearError: (state) => {
@@ -121,7 +126,9 @@ const sitesSlice = createSlice({
       .addCase(fetchSites.fulfilled, (state, action) => {
         state.isLoading = false;
         state.sites = action.payload;
-        state.categories = Array.from(new Set(action.payload.map((site: Site) => site.category)));
+        // Extract unique categories from sites
+        const uniqueCategories = Array.from(new Set(action.payload.map((site: Site) => site.category))).filter(Boolean) as string[];
+        state.categories = uniqueCategories;
         filterSites(state);
       })
       .addCase(fetchSites.rejected, (state, action) => {
@@ -136,7 +143,10 @@ const sitesSlice = createSlice({
       .addCase(createSite.fulfilled, (state, action) => {
         state.isCreateLoading = false;
         state.sites.push(action.payload);
-        state.categories = Array.from(new Set(state.sites.map(site => site.category)));
+        // Update categories if new category is added
+        if (action.payload.category && !state.categories.includes(action.payload.category)) {
+          state.categories = [...state.categories, action.payload.category].sort();
+        }
         filterSites(state);
       })
       .addCase(createSite.rejected, (state, action) => {
@@ -153,8 +163,11 @@ const sitesSlice = createSlice({
         const index = state.sites.findIndex(site => site.id === action.payload.id);
         if (index !== -1) {
           state.sites[index] = action.payload;
+          // Update categories if category was changed
+          if (action.payload.category && !state.categories.includes(action.payload.category)) {
+            state.categories = [...state.categories, action.payload.category].sort();
+          }
         }
-        state.categories = Array.from(new Set(state.sites.map(site => site.category)));
         filterSites(state);
       })
       .addCase(updateSite.rejected, (state, action) => {
@@ -169,7 +182,9 @@ const sitesSlice = createSlice({
       .addCase(deleteSite.fulfilled, (state, action) => {
         state.isLoading = false;
         state.sites = state.sites.filter(site => site.id !== action.payload);
-        state.categories = Array.from(new Set(state.sites.map(site => site.category)));
+        // Recalculate categories after deletion
+        const remainingCategories = Array.from(new Set(state.sites.map(site => site.category))).filter(Boolean) as string[];
+        state.categories = remainingCategories;
         filterSites(state);
       })
       .addCase(deleteSite.rejected, (state, action) => {
@@ -189,26 +204,35 @@ const sitesSlice = createSlice({
   },
 });
 
-// Helper function to filter sites
+// Helper function to filter sites based on search term and category
 function filterSites(state: SitesState) {
-  let filtered = state.sites;
+  let filtered = [...state.sites];
 
-  if (state.searchTerm) {
+  // Apply search filter
+  if (state.searchTerm.trim()) {
+    const searchLower = state.searchTerm.toLowerCase().trim();
     filtered = filtered.filter(
       (site) =>
-        site.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-        site.site_url.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-        site.category.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-        (site.description && site.description.toLowerCase().includes(state.searchTerm.toLowerCase()))
+        site.title.toLowerCase().includes(searchLower) ||
+        site.site_url.toLowerCase().includes(searchLower) ||
+        site.category.toLowerCase().includes(searchLower) ||
+        (site.description && site.description.toLowerCase().includes(searchLower))
     );
   }
 
-  if (state.selectedCategory) {
-    filtered = filtered.filter((site) => site.category === state.selectedCategory);
+  // Apply category filter
+  if (state.categoryFilter) {
+    filtered = filtered.filter((site) => site.category === state.categoryFilter);
   }
 
   state.filteredSites = filtered;
 }
 
-export const { setSearchTerm, setSelectedCategory, clearError } = sitesSlice.actions;
+export const { 
+  setSearchTerm, 
+  setCategoryFilter, // Changed export name
+  clearFilters, // Added new export
+  clearError 
+} = sitesSlice.actions;
+
 export default sitesSlice.reducer;
