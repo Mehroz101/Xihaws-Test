@@ -1,6 +1,8 @@
+// config/swagger.ts
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { Express } from 'express';
+import path from 'path';
 
 const options = {
   definition: {
@@ -20,7 +22,7 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3001',
+        url: `http://localhost:${process.env.PORT || 3001}`,
         description: 'Development server'
       },
       {
@@ -83,13 +85,13 @@ const options = {
         },
         Site: {
           type: 'object',
-          required: ['siteUrl', 'title', 'category'],
+          required: ['site_url', 'title', 'category'],
           properties: {
             id: {
               type: 'integer',
               description: 'Unique site identifier'
             },
-            siteUrl: {
+            site_url: {
               type: 'string',
               format: 'uri',
               description: 'Website URL',
@@ -100,7 +102,7 @@ const options = {
               description: 'Website title',
               example: 'Google Search'
             },
-            coverImage: {
+            cover_image: {
               type: 'string',
               format: 'uri',
               description: 'Cover image URL (optional)',
@@ -117,12 +119,12 @@ const options = {
               enum: ['Technology', 'Design', 'News', 'Education', 'Entertainment', 'Business', 'Health', 'Travel'],
               example: 'Technology'
             },
-            createdAt: {
+            created_at: {
               type: 'string',
               format: 'date-time',
               description: 'Site creation timestamp'
             },
-            updatedAt: {
+            updated_at: {
               type: 'string',
               format: 'date-time',
               description: 'Site last update timestamp'
@@ -180,7 +182,7 @@ const options = {
         },
         AIDescriptionRequest: {
           type: 'object',
-          required: ['title', 'category'],
+          required: ['title', 'category', 'link'],
           properties: {
             title: {
               type: 'string',
@@ -191,6 +193,11 @@ const options = {
               type: 'string',
               description: 'Website category',
               example: 'Technology'
+            },
+            link: {
+              type: 'string',
+              description: 'Website URL',
+              example: 'https://google.com'
             }
           }
         },
@@ -205,41 +212,6 @@ const options = {
               type: 'string',
               description: 'AI-generated description',
               example: 'Google is a powerful search engine that helps you find information on the web quickly and efficiently.'
-            }
-          }
-        },
-        ImageUploadResponse: {
-          type: 'object',
-          properties: {
-            message: {
-              type: 'string',
-              example: 'Image uploaded successfully'
-            },
-            image: {
-              type: 'object',
-              properties: {
-                url: {
-                  type: 'string',
-                  format: 'uri',
-                  description: 'Cloudinary image URL'
-                },
-                public_id: {
-                  type: 'string',
-                  description: 'Cloudinary public ID'
-                },
-                width: {
-                  type: 'integer',
-                  description: 'Image width'
-                },
-                height: {
-                  type: 'integer',
-                  description: 'Image height'
-                },
-                format: {
-                  type: 'string',
-                  description: 'Image format'
-                }
-              }
             }
           }
         },
@@ -275,14 +247,17 @@ const options = {
       {
         name: 'AI',
         description: 'AI-powered description generation'
-      },
-      {
-        name: 'Images',
-        description: 'Image upload and management'
       }
     ]
   },
-  apis: ['./src/routes/*.ts'], // Path to the API files
+  // Try different paths - choose one that works
+  apis: [
+    './src/routes/*.ts',           // If your routes are in src/routes
+    './routes/*.ts',               // If your routes are in routes (no src)
+    './dist/routes/*.js',          // For production build
+    './src/routes/*.js',           // If using JS files
+    path.join(__dirname, '../routes/*.ts'), // Absolute path
+  ],
 };
 
 const specs = swaggerJsdoc(options);
@@ -300,4 +275,6 @@ export const setupSwagger = (app: Express) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(specs);
   });
+
+  console.log('📚 Swagger documentation available at /api-docs');
 };
