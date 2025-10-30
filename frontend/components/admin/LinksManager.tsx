@@ -1,23 +1,32 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
-import { fetchSites, deleteSite, createSite, updateSite, GenerateDescription } from '@/store/slices/sitesSlice';
+import { fetchSites, deleteSite, createSite, updateSite } from '@/store/slices/sitesSlice';
 import AddLinkModal from './AddLinkModal';
-import Input from '@/components/ui/form/Input';
 import { toast } from 'react-hot-toast';
-import { Edit2, Trash2, ExternalLink, Search, Plus, Image as LucideImage, Sparkles, Upload, X } from 'lucide-react';
+import { Edit2, Trash2, ExternalLink, Search, Plus, Image as LucideImage } from 'lucide-react';
+import { Site } from '@/types';
+import Image from 'next/image';
 
-interface SiteLink {
-  id: number;
-  site_url: string;
-  title: string;
-  coverImage?: string;
-  description: string;
-  category: string;
-  createdAt: string;
-  updatedAt: string;
+
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 export default function LinksManager() {
@@ -25,136 +34,75 @@ export default function LinksManager() {
   const { filteredSites, isLoading } = useSelector((state: RootState) => state.sites);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedForEdit, setSelectedForEdit] = useState<SiteLink | null>(null);
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const generatedescription = useSelector((state: RootState) => state.sites.generatedescription);
-  const [newLink, setNewLink] = useState<Omit<SiteLink, 'id' | 'createdAt' | 'updatedAt'>>({
-    site_url: '',
-    title: '',
-    coverImage: '',
-    description: '',
-    category: '',
-  });
+  const [selectedForEdit, setSelectedForEdit] = useState<Site | null>(null);
+
+  // Debounce the search term with 300ms delay
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     dispatch(fetchSites());
   }, [dispatch]);
 
+  // Effect to dispatch search when debounced term changes
   useEffect(() => {
-    dispatch({ type: 'sites/setSearchTerm', payload: searchTerm });
-  }, [searchTerm, dispatch]);
+    dispatch({ type: 'sites/setSearchTerm', payload: debouncedSearchTerm });
+  }, [debouncedSearchTerm, dispatch]);
 
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this link?')) {
       try {
         const result = await dispatch(deleteSite(id));
-        // unwrap is not used here because we match on action; check for rejected
         if (deleteSite.fulfilled.match(result)) {
           toast.success('Link deleted');
         } else {
-          const msg = (result.payload as any) || 'Failed to delete link';
+          const msg = (result.payload as string) || 'Failed to delete link';
           toast.error(msg);
         }
       } catch (err) {
         console.error('Delete error:', err);
-        toast.error((err as any)?.message || 'Failed to delete link');
+        toast.error((err as Error)?.message || 'Failed to delete link');
       }
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setImagePreview(imageUrl);
-        setNewLink(prev => ({ ...prev, coverImage: imageUrl }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setImagePreview(null);
-    setNewLink(prev => ({ ...prev, coverImage: '' }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const generateAIDescription = async () => {
-    if (!newLink.title && !newLink.site_url && !newLink.category) {
-      alert('Please provide at least a title, URL, and category to generate description');
-      return;
-    }
-    setIsGeneratingDescription(true);
+  const handleModalSubmit = async (data: { id?: string | number; site_url: string; title: string; cover_image?: string; description: string; category: string }) => {
     try {
-      const result = await dispatch(GenerateDescription({ title: newLink.title, category: newLink.category, link: newLink.site_url }));
-      if (GenerateDescription.fulfilled.match(result)) {
-        const desc = result.payload as string;
-        setNewLink(prev => ({ ...prev, description: desc || generatedescription || '' }));
-        toast.success('AI description generated');
+      if (data.id) {
+        const result = await dispatch(updateSite({ 
+          id: Number(data.id), 
+          data: { 
+            title: data.title, 
+            site_url: data.site_url, 
+            category: data.category, 
+            cover_image: data.cover_image, 
+            description: data.description 
+          } 
+        }));
+        if (updateSite.fulfilled.match(result)) {
+          toast.success('Link updated');
+          setShowAddModal(false);
+          setSelectedForEdit(null);
+        } else {
+          toast.error((result.payload as string) || 'Failed to update link');
+        }
       } else {
-        const msg = (result.payload as any) || 'Failed to generate description';
-        toast.error(msg);
+        const result = await dispatch(createSite({ 
+          title: data.title, 
+          site_url: data.site_url, 
+          category: data.category, 
+          coverImage: data.cover_image, 
+          description: data.description 
+        }));
+        if (createSite.fulfilled.match(result)) {
+          toast.success('Link added');
+          setShowAddModal(false);
+        } else {
+          toast.error((result.payload as string) || 'Failed to create link');
+        }
       }
-    } catch (error) {
-      console.error('Error generating description:', error);
-      toast.error((error as any)?.message || 'Error generating description');
-    } finally {
-      setIsGeneratingDescription(false);
-    }
-  };
-
-  const handleAddLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newLink.site_url || !newLink.title || !newLink.category || !newLink.description) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    try {
-      new URL(newLink.site_url);
-      const result = await dispatch(createSite({ siteUrl: newLink.site_url, ...newLink }));
-      if (createSite.fulfilled.match(result)) {
-        toast.success('Link added');
-        setShowAddModal(false);
-        resetForm();
-      } else {
-        const msg = (result.payload as any) || 'Failed to create link';
-        toast.error(msg);
-      }
-    } catch {
-      toast.error('Please enter a valid URL');
-      return;
-    }
-  };
-
-  const resetForm = () => {
-    setNewLink({
-      site_url: '',
-      title: '',
-      coverImage: '',
-      description: '',
-      category: '',
-    });
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    } catch (err) {
+      console.error('Modal submit error', err);
+      toast.error((err as Error)?.message || 'Failed to save link');
     }
   };
 
@@ -162,9 +110,9 @@ export default function LinksManager() {
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200  mt-6 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 mt-6 dark:border-gray-700">
         <div className="animate-pulse">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 ">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-1/4"></div>
           </div>
           {[...Array(5)].map((_, i) => (
@@ -188,23 +136,23 @@ export default function LinksManager() {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6 mt-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 mt-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manage Links</h2>
-        <div className="flex items-center space-x-4">
-          <div className="relative w-64">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
               placeholder="Search links..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-400"
             />
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             <span>Add Link</span>
@@ -218,29 +166,29 @@ export default function LinksManager() {
             <div className="text-gray-400 dark:text-gray-500">
               <ExternalLink className="mx-auto h-12 w-12 mb-4" />
               <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">No links found</p>
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-gray-500 dark:text-gray-400 px-4">
                 {searchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first link'}
               </p>
             </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Website
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
                     Description
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Category
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -248,60 +196,62 @@ export default function LinksManager() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredSites.map((link) => (
                   <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
+                    <td className="px-4 sm:px-6 py-4">
+                      <div className="flex items-center min-w-0">
                         {link.cover_image ? (
-                          <img
+                          <Image
                             src={link.cover_image}
                             alt={link.title}
-                            className="w-10 h-10 rounded-lg object-cover mr-3"
+                            height={40}
+                            width={40}
+                            className="w-10 h-10 rounded-lg object-cover mr-3 -shrink-0"
                           />
                         ) : (
-                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center mr-3">
+                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
                             <LucideImage className="h-5 w-5 text-gray-400" />
                           </div>
                         )}
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
                             {link.title}
                           </div>
                           <a
                             href={link.site_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center truncate"
                           >
-                            {link.site_url}
-                            <ExternalLink className="ml-1 h-3 w-3" />
+                            <span className="truncate">{link.site_url}</span>
+                            <ExternalLink className="ml-1 h-3 w-3 flex-shrink-0" />
                           </a>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-white max-w-xs">
+                    <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
+                      <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
                         {link.description}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 sm:px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                         {link.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(link.createdAt).toLocaleDateString()}
+                    <td className="px-4 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+                      {new Date(link.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => { setSelectedForEdit(link as SiteLink); setShowAddModal(true); }}
-                          className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 transition-colors"
+                          onClick={() => { setSelectedForEdit(link); setShowAddModal(true); }}
+                          className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 transition-colors p-1"
                           title="Edit"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(Number(link.id))}
-                          className="text-red-600 hover:text-red-900 dark:hover:text-red-400 transition-colors"
+                          className="text-red-600 hover:text-red-900 dark:hover:text-red-400 transition-colors p-1"
                           title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -316,38 +266,11 @@ export default function LinksManager() {
         )}
       </div>
 
-      {/* Use the shared AddLinkModal for create and edit */}
       <AddLinkModal
         open={showAddModal}
-        onClose={() => { setShowAddModal(false); setSelectedForEdit(null); resetForm(); }}
+        onClose={() => { setShowAddModal(false); setSelectedForEdit(null); }}
         initial={selectedForEdit || undefined}
-        onSubmit={async (data) => {
-          try {
-            if (data.id) {
-              const result = await dispatch(updateSite({ id: Number(data.id), data: { title: data.title, site_url: data.site_url, category: data.category, cover_image: data.cover_image, description: data.description } }));
-              if (updateSite.fulfilled.match(result)) {
-                toast.success('Link updated');
-                setShowAddModal(false);
-                setSelectedForEdit(null);
-                resetForm();
-              } else {
-                toast.error((result.payload as any) || 'Failed to update link');
-              }
-            } else {
-              const result = await dispatch(createSite({ title: data.title, siteUrl: data.site_url, category: data.category, coverImage: data.cover_image, description: data.description } as any));
-              if (createSite.fulfilled.match(result)) {
-                toast.success('Link added');
-                setShowAddModal(false);
-                resetForm();
-              } else {
-                toast.error((result.payload as any) || 'Failed to create link');
-              }
-            }
-          } catch (err) {
-            console.error('Modal submit error', err);
-            toast.error((err as any)?.message || 'Failed');
-          }
-        }}
+        onSubmit={handleModalSubmit}
         categories={categories}
         isLoading={isLoading}
       />

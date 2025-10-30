@@ -49,9 +49,10 @@ export const sitesAPI = {
 
   createSite: (data: {
     title: string;
-    siteUrl: string;
+    site_url: string;
     category: string;
     cover_image?: string;
+    description?: string;
   }) => api.post('/sites', data),
 
   generateDescription: (data: { title: string; category: string; link: string }) =>

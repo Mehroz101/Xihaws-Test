@@ -1,47 +1,74 @@
 import { Request, Response } from "express";
-import { createSite, getAllSites, getSiteById, updateSite, deleteSite } from "../models/site";
+import {
+  createSite,
+  getAllSites,
+  getSiteById,
+  updateSite,
+  deleteSite,
+} from "../models/site";
 import { CloudinaryService } from "../services/cloudinaryService";
 
 export const createSiteLink = async (req: Request, res: Response) => {
   try {
-    let { title, siteUrl, coverImage, category, description } = req.body as {
+    let { title, site_url, coverImage, category, description } = req.body as {
       title: string;
-      siteUrl: string;
+      site_url: string;
       coverImage?: string;
       category: string;
       description?: string;
     };
 
     // If client sent a data URI / base64 image, upload it to Cloudinary first
-    if (typeof coverImage === 'string' && coverImage.startsWith('data:')) {
+    if (typeof coverImage === "string" && coverImage.startsWith("data:")) {
       try {
         const uploadResult = await CloudinaryService.uploadImage(coverImage);
         coverImage = uploadResult.secure_url;
       } catch (err) {
-        console.error('Image upload failed in createSiteLink:', err);
-        return res.status(400).json({ message: 'Invalid coverImage or upload failed', error: err instanceof Error ? err.message : err });
+        console.error("Image upload failed in createSiteLink:", err);
+        return res
+          .status(400)
+          .json({
+            message: "Invalid coverImage or upload failed",
+            error: err instanceof Error ? err.message : err,
+          });
       }
     }
 
     // Basic defensive length checks to avoid DB varchar overflow
-    if (typeof title === 'string' && title.length > 200) title = title.slice(0, 200);
-    if (typeof category === 'string' && category.length > 50) category = category.slice(0, 50);
-    if (typeof siteUrl === 'string' && siteUrl.length > 500) siteUrl = siteUrl.slice(0, 500);
+    if (typeof title === "string" && title.length > 200)
+      title = title.slice(0, 200);
+    if (typeof category === "string" && category.length > 50)
+      category = category.slice(0, 50);
+    if (typeof site_url === "string" && site_url.length > 500)
+      site_url = site_url.slice(0, 500);
 
     // If coverImage is still a very long string (not a URL), reject and ask client to upload via multipart or send a URL
-    if (typeof coverImage === 'string' && coverImage.length > 500) {
-      return res.status(400).json({ message: 'coverImage too long. Please upload the image via the upload endpoint or send an externally-hosted URL.' });
+    if (typeof coverImage === "string" && coverImage.length > 500) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "coverImage too long. Please upload the image via the upload endpoint or send an externally-hosted URL.",
+        });
     }
 
     // Description must be provided by the client API
-    if (!description || description.trim() === '') {
-      return res.status(400).json({ message: 'description is required in the request body' });
+    if (!description || description.trim() === "") {
+      return res
+        .status(400)
+        .json({ message: "description is required in the request body" });
     }
 
     // Ensure coverImage is a string (DB schema allows NULL but our createSite signature expects string fields)
-    coverImage = coverImage ?? '';
+    coverImage = coverImage ?? "";
 
-    const site = await createSite({ title, siteUrl, coverImage, category, description });
+    const site = await createSite({
+      title,
+      site_url,
+      coverImage,
+      category,
+      description,
+    });
     res.status(201).json(site);
   } catch (error) {
     console.log(error);
@@ -70,9 +97,19 @@ export const getSite = async (req: Request, res: Response) => {
 
 export const updateSiteLink = async (req: Request, res: Response) => {
   try {
-    const site = await updateSite(Number(req.params.id), req.body);
+    const uploadResult = await CloudinaryService.uploadImage(
+      req.body.cover_image
+    );
+    const coverImage = uploadResult.secure_url;
+
+    const site = await updateSite(Number(req.params.id), {
+      coverImage: coverImage,
+      ...req.body,
+    });
+
     res.json(site);
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: "Failed to update site", error });
   }
 };
@@ -96,85 +133,6 @@ export const deleteSiteLink = async (req: Request, res: Response) => {
   }
 };
 
-// Upload image and return Cloudinary URL
-export const uploadImage = async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No image file provided" });
-    }
 
-    const uploadResult = await CloudinaryService.uploadImage(req.file.buffer);
 
-    res.json({
-      message: "Image uploaded successfully",
-      image: {
-        url: uploadResult.secure_url,
-        public_id: uploadResult.public_id,
-        width: uploadResult.width,
-        height: uploadResult.height,
-        format: uploadResult.format
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to upload image",
-      error: error instanceof Error ? error.message : error
-    });
-  }
-};
 
-// Create site with image upload
-export const createSiteWithImage = async (req: Request, res: Response) => {
-  try {
-    const { title, siteUrl, category, description } = req.body;
-    let coverImage = req.body.coverImage; // For URL-based images
-
-    // If file was uploaded, use Cloudinary
-    if (req.file) {
-      const uploadResult = await CloudinaryService.uploadImage(req.file.buffer);
-      coverImage = uploadResult.secure_url;
-    }
-
-    const site = await createSite({ title, siteUrl, coverImage, category, description });
-    res.status(201).json(site);
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to create site link",
-      error: error instanceof Error ? error.message : error
-    });
-  }
-};
-
-// Update site with image upload
-export const updateSiteWithImage = async (req: Request, res: Response) => {
-  try {
-    const siteId = Number(req.params.id);
-    const { title, siteUrl, category } = req.body;
-    let coverImage = req.body.coverImage; // For URL-based images
-
-    // Get existing site to check for old image
-    const existingSite = await getSiteById(siteId);
-
-    // If file was uploaded, use Cloudinary
-    if (req.file) {
-      const uploadResult = await CloudinaryService.uploadImage(req.file.buffer);
-      coverImage = uploadResult.secure_url;
-
-      // Delete old image if it exists and is from Cloudinary
-      if (existingSite && existingSite.coverImage) {
-        const publicId = CloudinaryService.extractPublicId(existingSite.coverImage);
-        if (publicId) {
-          await CloudinaryService.deleteImage(publicId);
-        }
-      }
-    }
-
-    const site = await updateSite(siteId, { title, siteUrl, coverImage, category });
-    res.json(site);
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to update site",
-      error: error instanceof Error ? error.message : error
-    });
-  }
-};

@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store";
 import { GenerateDescription } from "@/store/slices/sitesSlice";
+import Image from "next/image";
 
 interface LinkData {
   id?: number | string;
@@ -47,7 +48,7 @@ export default function AddLinkModal({
   const [form, setForm] = useState<LinkData>({ ...defaultFormState, ...initial });
   const [imagePreview, setImagePreview] = useState<string | null>(initial.cover_image || null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const { generatedescription, isCreateLoading } = useSelector((state: RootState) => state.sites);
 
   useEffect(() => {
@@ -63,8 +64,7 @@ export default function AddLinkModal({
       });
       setImagePreview(initial?.cover_image || null);
     }
-    // only re-run when modal opens
-  }, [open]);
+  }, [open, initial]);
 
   /** ✅ Handle image upload */
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,12 +118,13 @@ export default function AddLinkModal({
         setForm((prev) => ({ ...prev, description: desc }));
         toast.success("AI description generated successfully.");
       } else {
-        const msg = (result.payload as any) || "Failed to generate description.";
-        toast.error(msg);
+        const errorMessage = result.payload as string || "Failed to generate description.";
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error("AI Description Error:", error);
-      toast.error("Error generating AI description");
+      const errorMessage = error instanceof Error ? error.message : "Error generating AI description";
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -132,13 +133,16 @@ export default function AddLinkModal({
   /** ✅ Form submission */
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    
+    // Validate required fields
     if (!form.site_url || !form.title || !form.category || !form.description) {
       toast.error("Please fill all required fields.");
       return;
     }
 
+    // Validate URL format
     try {
-      new URL(form.site_url); // Validate URL
+      new URL(form.site_url);
     } catch {
       toast.error("Invalid URL format.");
       return;
@@ -148,9 +152,10 @@ export default function AddLinkModal({
       await onSubmit(form);
       toast.success("Link saved successfully!");
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Submit failed", err);
-      toast.error(err?.message || "Failed to save link.");
+      const errorMessage = err instanceof Error ? err.message : "Failed to save link.";
+      toast.error(errorMessage);
     }
   };
 
@@ -164,7 +169,11 @@ export default function AddLinkModal({
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {form.id ? "Edit Link" : "Add New Link"}
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+          <button 
+            onClick={onClose} 
+            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            type="button"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -173,7 +182,9 @@ export default function AddLinkModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* URL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Website URL *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Website URL *
+            </label>
             <Input
               type="text"
               value={form.site_url}
@@ -185,7 +196,9 @@ export default function AddLinkModal({
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Title *
+            </label>
             <Input
               type="text"
               value={form.title}
@@ -197,13 +210,17 @@ export default function AddLinkModal({
 
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cover Image</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Cover Image
+            </label>
 
             {imagePreview && (
-              <div className="mb-4 relative">
-                <img
+              <div className="mb-4 relative inline-block">
+                <Image
                   src={imagePreview}
                   alt="preview"
+                  height={128}
+                  width={128}
                   className="w-32 h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
                 />
                 <button
@@ -219,8 +236,21 @@ export default function AddLinkModal({
             <div
               className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer"
               onClick={() => fileRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  fileRef.current?.click();
+                }
+              }}
             >
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+              <input 
+                ref={fileRef} 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFile} 
+                className="hidden" 
+              />
               <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Drag & drop or click to select image
@@ -234,7 +264,9 @@ export default function AddLinkModal({
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Category *
+            </label>
             <select
               value={form.category}
               onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
@@ -253,7 +285,9 @@ export default function AddLinkModal({
           {/* Description + AI Generate */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description *
+              </label>
               <button
                 type="button"
                 disabled={isGenerating}
@@ -275,7 +309,7 @@ export default function AddLinkModal({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {form.description.length}/150 characters
+              {(form.description || generatedescription || '').length}/150 characters
             </p>
           </div>
 
@@ -285,16 +319,15 @@ export default function AddLinkModal({
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isCreateLoading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              disabled={isCreateLoading || isLoading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg disabled:cursor-not-allowed transition-colors"
             >
-              {isCreateLoading ? "Saving..." : form.id ? "Save" : "Add Link"}
+              {isCreateLoading || isLoading ? "Saving..." : form.id ? "Save" : "Add Link"}
             </button>
           </div>
         </form>

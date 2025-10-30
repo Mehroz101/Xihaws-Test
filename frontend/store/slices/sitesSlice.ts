@@ -43,9 +43,10 @@ export const createSite = createAsyncThunk(
   'sites/createSite',
   async (siteData: {
     title: string;
-    siteUrl: string;
+    site_url: string;
     category: string;
     coverImage?: string;
+    description: string;
   }, { rejectWithValue }) => {
     try {
       const response = await sitesAPI.createSite(siteData);

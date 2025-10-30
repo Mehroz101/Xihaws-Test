@@ -2,7 +2,7 @@ import { pool } from "./db";
 
 export interface Site {
   id?: number;
-  siteUrl: string;
+  site_url: string;
   title: string;
   coverImage?: string;
   description: string;
@@ -12,11 +12,11 @@ export interface Site {
 }
 
 export const createSite = async (site: Site) => {
-  const { siteUrl, title, coverImage, description, category } = site;
+  const { site_url, title, coverImage, description, category } = site;
   const result = await pool.query(
     `INSERT INTO sites (site_url, title, cover_image, description, category) 
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [siteUrl, title, coverImage, description, category]
+    [site_url, title, coverImage, description, category]
   );
   return result.rows[0];
 };
@@ -32,13 +32,15 @@ export const getSiteById = async (id: number) => {
 };
 
 export const updateSite = async (id: number, site: Partial<Site>) => {
-  const { siteUrl, title, coverImage, description, category } = site;
+  const { site_url, title, coverImage, description, category } = site;
+  console.log(site)
   const result = await pool.query(
     `UPDATE sites 
      SET site_url=$1, title=$2, cover_image=$3, description=$4, category=$5, updated_at=NOW() 
      WHERE id=$6 RETURNING *`,
-    [siteUrl, title, coverImage, description, category, id]
+    [site_url, title, coverImage, description, category, id]
   );
+  console.log(result.rows[0])
   return result.rows[0];
 };
 
