@@ -1,34 +1,20 @@
+'use client'
+import { RootState, AppDispatch } from "@/store";
+import { fetchSites } from "@/store/slices/sitesSlice";
+import Image from "next/image";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
 // app/page.tsx (Next.js 13+ with App Router) 
-const fakeLinks = [
-  {
-    id: 1,
-    siteUrl: "https://techcrunch.com",
-    title: "TechCrunch",
-    coverImage: "https://source.unsplash.com/600x400/?technology",
-    description:
-      "TechCrunch covers technology news, startups, and Silicon Valley trends.",
-    category: "Technology",
-  },
-  {
-    id: 2,
-    siteUrl: "https://behance.net",
-    title: "Behance",
-    coverImage: "https://source.unsplash.com/600x400/?design",
-    description: "Showcase and discover creative work from designers worldwide.",
-    category: "Design",
-  },
-  {
-    id: 3,
-    siteUrl: "https://bbc.com/news",
-    title: "BBC News",
-    coverImage: "https://source.unsplash.com/600x400/?news",
-    description:
-      "BBC News brings you the latest stories, headlines, and breaking updates from around the world.",
-    category: "News",
-  },
-];
+
 
 export default function Home() {
+
+  const { filteredSites, isLoading } = useSelector((state: RootState) => state.sites);
+  const dispatch = useDispatch<AppDispatch>();
+  useEffect(() => {
+    dispatch(fetchSites());
+  }, [dispatch]);
 
   return (
     <div >
@@ -41,37 +27,43 @@ export default function Home() {
 
           {/* Card Grid */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {fakeLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.siteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:-translate-y-1 hover:shadow-lg transition transform flex flex-col"
-              >
-                {link.coverImage && (
-                  <img
-                    src={link.coverImage}
-                    alt={link.title}
-                    className="h-48 w-full object-cover"
-                  />
-                )}
-                <div className="p-4 flex flex-col flex-grow">
-                  <span className="text-xs uppercase text-gray-500 dark:text-gray-400">
-                    {link.category}
-                  </span>
-                  <h3 className="text-lg font-semibold mt-1 mb-2">
-                    {link.title}
-                  </h3>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 flex-grow">
-                    {link.description}
-                  </p>
-                  <button className="mt-4 text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:underline self-start">
-                    Visit Site →
-                  </button>
-                </div>
-              </a>
-            ))}
+            {isLoading ? (
+              <p>Loading...</p>
+            ) : (
+              filteredSites.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.site_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:-translate-y-1 hover:shadow-lg transition transform flex flex-col"
+                >
+                  {link.cover_image && (
+                    <Image
+                      src={link.cover_image}
+                      alt={link.title}
+                      width={800}
+                      height={400}
+                      className="h-48 w-full object-cover"
+                    />
+                  )}
+                  <div className="p-4 flex flex-col flex-grow">
+                    <span className="text-xs uppercase text-gray-500 dark:text-gray-400">
+                      {link.category}
+                    </span>
+                    <h3 className="text-lg font-semibold mt-1 mb-2">
+                      {link.title}
+                    </h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 flex-grow">
+                      {link.description}
+                    </p>
+                    <button className="mt-4 text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:underline self-start">
+                      Visit Site →
+                    </button>
+                  </div>
+                </a>
+              )
+              ))}
           </div>
         </div>
       </div>

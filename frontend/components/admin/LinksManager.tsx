@@ -3,12 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
-import { fetchSites, deleteSite, createSite } from '@/store/slices/sitesSlice';
+import { fetchSites, deleteSite, createSite, updateSite, GenerateDescription } from '@/store/slices/sitesSlice';
+import AddLinkModal from './AddLinkModal';
+import Input from '@/components/ui/form/Input';
+import { toast } from 'react-hot-toast';
 import { Edit2, Trash2, ExternalLink, Search, Plus, Image as LucideImage, Sparkles, Upload, X } from 'lucide-react';
 
 interface SiteLink {
-  id: string;
-  siteUrl: string;
+  id: number;
+  site_url: string;
   title: string;
   coverImage?: string;
   description: string;
@@ -22,12 +25,13 @@ export default function LinksManager() {
   const { filteredSites, isLoading } = useSelector((state: RootState) => state.sites);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedForEdit, setSelectedForEdit] = useState<SiteLink | null>(null);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const generatedescription = useSelector((state: RootState) => state.sites.generatedescription);
   const [newLink, setNewLink] = useState<Omit<SiteLink, 'id' | 'createdAt' | 'updatedAt'>>({
-    siteUrl: '',
+    site_url: '',
     title: '',
     coverImage: '',
     description: '',
@@ -44,7 +48,19 @@ export default function LinksManager() {
 
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this link?')) {
-      dispatch(deleteSite(id));
+      try {
+        const result = await dispatch(deleteSite(id));
+        // unwrap is not used here because we match on action; check for rejected
+        if (deleteSite.fulfilled.match(result)) {
+          toast.success('Link deleted');
+        } else {
+          const msg = (result.payload as any) || 'Failed to delete link';
+          toast.error(msg);
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        toast.error((err as any)?.message || 'Failed to delete link');
+      }
     }
   };
 
@@ -80,30 +96,25 @@ export default function LinksManager() {
   };
 
   const generateAIDescription = async () => {
-    if (!newLink.title && !newLink.siteUrl) {
-      alert('Please provide at least a title or URL to generate description');
+    if (!newLink.title && !newLink.site_url && !newLink.category) {
+      alert('Please provide at least a title, URL, and category to generate description');
       return;
     }
-
     setIsGeneratingDescription(true);
-
     try {
-      setTimeout(() => {
-        const mockDescriptions = [
-          `A powerful ${newLink.category.toLowerCase()} platform offering innovative solutions and seamless user experience.`,
-          `Discover amazing ${newLink.category.toLowerCase()} features and tools that enhance productivity and creativity.`,
-          `Your go-to ${newLink.category.toLowerCase()} resource for cutting-edge technology and modern solutions.`,
-          `Transform your digital experience with this comprehensive ${newLink.category.toLowerCase()} platform.`
-        ];
-
-        const randomDescription = mockDescriptions[Math.floor(Math.random() * mockDescriptions.length)];
-        setNewLink(prev => ({ ...prev, description: randomDescription }));
-        setIsGeneratingDescription(false);
-      }, 2000);
-
+      const result = await dispatch(GenerateDescription({ title: newLink.title, category: newLink.category, link: newLink.site_url }));
+      if (GenerateDescription.fulfilled.match(result)) {
+        const desc = result.payload as string;
+        setNewLink(prev => ({ ...prev, description: desc || generatedescription || '' }));
+        toast.success('AI description generated');
+      } else {
+        const msg = (result.payload as any) || 'Failed to generate description';
+        toast.error(msg);
+      }
     } catch (error) {
       console.error('Error generating description:', error);
-      alert('Failed to generate description. Please try again.');
+      toast.error((error as any)?.message || 'Error generating description');
+    } finally {
       setIsGeneratingDescription(false);
     }
   };
@@ -111,26 +122,31 @@ export default function LinksManager() {
   const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newLink.siteUrl || !newLink.title || !newLink.category || !newLink.description) {
-      alert('Please fill in all required fields');
+    if (!newLink.site_url || !newLink.title || !newLink.category || !newLink.description) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
     try {
-      new URL(newLink.siteUrl);
+      new URL(newLink.site_url);
+      const result = await dispatch(createSite({ siteUrl: newLink.site_url, ...newLink }));
+      if (createSite.fulfilled.match(result)) {
+        toast.success('Link added');
+        setShowAddModal(false);
+        resetForm();
+      } else {
+        const msg = (result.payload as any) || 'Failed to create link';
+        toast.error(msg);
+      }
     } catch {
-      alert('Please enter a valid URL');
+      toast.error('Please enter a valid URL');
       return;
     }
-
-    dispatch(createSite(newLink));
-    setShowAddModal(false);
-    resetForm();
   };
 
   const resetForm = () => {
     setNewLink({
-      siteUrl: '',
+      site_url: '',
       title: '',
       coverImage: '',
       description: '',
@@ -234,9 +250,9 @@ export default function LinksManager() {
                   <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {link.coverImage ? (
+                        {link.cover_image ? (
                           <img
-                            src={link.coverImage}
+                            src={link.cover_image}
                             alt={link.title}
                             className="w-10 h-10 rounded-lg object-cover mr-3"
                           />
@@ -250,12 +266,12 @@ export default function LinksManager() {
                             {link.title}
                           </div>
                           <a
-                            href={link.siteUrl}
+                            href={link.site_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
                           >
-                            {link.siteUrl}
+                            {link.site_url}
                             <ExternalLink className="ml-1 h-3 w-3" />
                           </a>
                         </div>
@@ -277,7 +293,7 @@ export default function LinksManager() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => {/* TODO: Implement edit */ }}
+                          onClick={() => { setSelectedForEdit(link as SiteLink); setShowAddModal(true); }}
                           className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 transition-colors"
                           title="Edit"
                         >
@@ -300,161 +316,41 @@ export default function LinksManager() {
         )}
       </div>
 
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Add New Link
-              </h3>
-            </div>
-
-            <form onSubmit={handleAddLink} className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Website URL *
-                </label>
-                <input
-                  type="url"
-                  value={newLink.siteUrl}
-                  onChange={(e) => setNewLink(prev => ({ ...prev, siteUrl: e.target.value }))}
-                  placeholder="https://example.com"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  value={newLink.title}
-                  onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter website title"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Cover Image
-                </label>
-
-                {imagePreview && (
-                  <div className="mb-4 relative">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-
-                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Drag and drop an image, or click to browse
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>Choose Image</span>
-                  </button>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    PNG, JPG, GIF up to 5MB
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Category *
-                </label>
-                <select
-                  value={newLink.category}
-                  onChange={(e) => setNewLink(prev => ({ ...prev, category: e.target.value }))}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400"
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Description *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={generateAIDescription}
-                    disabled={isGeneratingDescription || (!newLink.title && !newLink.siteUrl)}
-                    className="flex items-center space-x-2 text-sm bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white px-3 py-1 rounded-lg transition-colors disabled:cursor-not-allowed"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span>
-                      {isGeneratingDescription ? 'Generating...' : 'AI Generate'}
-                    </span>
-                  </button>
-                </div>
-                <textarea
-                  value={newLink.description}
-                  onChange={(e) => setNewLink(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter website description or use AI to generate one"
-                  required
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 resize-none"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {newLink.description.length}/150 characters
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Add Link
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Use the shared AddLinkModal for create and edit */}
+      <AddLinkModal
+        open={showAddModal}
+        onClose={() => { setShowAddModal(false); setSelectedForEdit(null); resetForm(); }}
+        initial={selectedForEdit || undefined}
+        onSubmit={async (data) => {
+          try {
+            if (data.id) {
+              const result = await dispatch(updateSite({ id: Number(data.id), data: { title: data.title, site_url: data.site_url, category: data.category, cover_image: data.cover_image, description: data.description } }));
+              if (updateSite.fulfilled.match(result)) {
+                toast.success('Link updated');
+                setShowAddModal(false);
+                setSelectedForEdit(null);
+                resetForm();
+              } else {
+                toast.error((result.payload as any) || 'Failed to update link');
+              }
+            } else {
+              const result = await dispatch(createSite({ title: data.title, siteUrl: data.site_url, category: data.category, coverImage: data.cover_image, description: data.description } as any));
+              if (createSite.fulfilled.match(result)) {
+                toast.success('Link added');
+                setShowAddModal(false);
+                resetForm();
+              } else {
+                toast.error((result.payload as any) || 'Failed to create link');
+              }
+            }
+          } catch (err) {
+            console.error('Modal submit error', err);
+            toast.error((err as any)?.message || 'Failed');
+          }
+        }}
+        categories={categories}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

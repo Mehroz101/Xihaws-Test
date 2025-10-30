@@ -4,15 +4,19 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export const generateDescription = async (title: string, category: string): Promise<string> => {
+export const generateDescription = async (title: string, category: string, link: string): Promise<string> => {
   try {
-    const prompt = `Write a short, engaging description (2-3 sentences) for a website titled "${title}" in the "${category}" category. The description should be informative, concise, and appealing to users. Focus on what makes this website valuable and unique.`;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `Write a short, engaging description (2-3 sentences, max 150 characters) for a website titled "${title}" in the "${category}" category and located at ${link}. The description should be informative, concise, and appealing to users. Focus on what makes this website valuable and unique.`;
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    const description = result.response.text().trim();
+    console.log("Gemini API Response:", description);
+
+    // Ensure description is not too long for database
+    return description.slice(0, 450); // Leave some margin from 500 char limit
   } catch (error) {
     console.error("Gemini API Error:", error);
-    
+
     // Fallback to static descriptions if Gemini fails
     const fallbackDescriptions = {
       'Technology': `A cutting-edge ${title} solution that leverages modern technology to provide innovative features and seamless user experience.`,
@@ -25,7 +29,9 @@ export const generateDescription = async (title: string, category: string): Prom
       'Travel': `Explore the world with ${title}, your ultimate travel companion for discovering new destinations and experiences.`
     };
 
-    return fallbackDescriptions[category as keyof typeof fallbackDescriptions] || 
+    const fallbackDesc = fallbackDescriptions[category as keyof typeof fallbackDescriptions] ||
       `Discover ${title}, a valuable resource in the ${category} category that offers unique insights and practical solutions.`;
+    // Ensure fallback description is also within limits
+    return fallbackDesc.slice(0, 450);
   }
 };

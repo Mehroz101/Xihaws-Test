@@ -27,6 +27,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    console.log('API Error:', error);
     return Promise.reject(error);
   }
 );
@@ -35,7 +36,7 @@ api.interceptors.response.use(
 export const authAPI = {
   signup: (data: { username: string; email: string; password: string }) =>
     api.post('/auth/signup', data),
-  
+
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
 };
@@ -43,39 +44,42 @@ export const authAPI = {
 // Sites API
 export const sitesAPI = {
   getSites: () => api.get('/sites'),
-  
+
   getSite: (id: number) => api.get(`/sites/${id}`),
-  
+
   createSite: (data: {
     title: string;
     siteUrl: string;
     category: string;
-    coverImage?: string;
+    cover_image?: string;
   }) => api.post('/sites', data),
-  
+
+  generateDescription: (data: { title: string; category: string; link: string }) =>
+    api.post('/ai/generate-description', data),
+
   updateSite: (id: number, data: {
     title?: string;
     siteUrl?: string;
     category?: string;
-    coverImage?: string;
+    cover_image?: string;
   }) => api.put(`/sites/${id}`, data),
-  
+
   deleteSite: (id: number) => api.delete(`/sites/${id}`),
-  
-  uploadImage: (formData: FormData) => 
+
+  uploadImage: (formData: FormData) =>
     api.post('/sites/upload-image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }),
-  
+
   createSiteWithImage: (formData: FormData) =>
     api.post('/sites/with-image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }),
-  
+
   updateSiteWithImage: (id: number, formData: FormData) =>
     api.put(`/sites/${id}/with-image`, formData, {
       headers: {

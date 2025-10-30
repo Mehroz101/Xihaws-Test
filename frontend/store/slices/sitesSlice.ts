@@ -6,6 +6,8 @@ interface SitesState {
   sites: Site[];
   filteredSites: Site[];
   isLoading: boolean;
+  isCreateLoading: boolean;
+  generatedescription: string;
   error: string | null;
   searchTerm: string;
   selectedCategory: string;
@@ -15,7 +17,9 @@ interface SitesState {
 const initialState: SitesState = {
   sites: [],
   filteredSites: [],
+  generatedescription: '',
   isLoading: false,
+  isCreateLoading: false,
   error: null,
   searchTerm: '',
   selectedCategory: '',
@@ -45,6 +49,7 @@ export const createSite = createAsyncThunk(
   }, { rejectWithValue }) => {
     try {
       const response = await sitesAPI.createSite(siteData);
+      console.log({ response });
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create site');
@@ -76,25 +81,13 @@ export const deleteSite = createAsyncThunk(
   }
 );
 
-export const generateDescription = createAsyncThunk(
+export const GenerateDescription = createAsyncThunk(
   'sites/generateDescription',
-  async ({ title, category }: { title: string; category: string }, { rejectWithValue }) => {
+  async ({ title, category, link }: { title: string; category: string; link: string }, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/ai/generate-description', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ title, category }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate description');
-      }
-      
-      const data = await response.json();
-      return data.description;
+      const response = await sitesAPI.generateDescription({ title, category, link });
+      console.log({ response });
+      return response.data.description;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to generate description');
     }
@@ -136,17 +129,17 @@ const sitesSlice = createSlice({
       })
       // Create site
       .addCase(createSite.pending, (state) => {
-        state.isLoading = true;
+        state.isCreateLoading = true;
         state.error = null;
       })
       .addCase(createSite.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isCreateLoading = false;
         state.sites.push(action.payload);
         state.categories = Array.from(new Set(state.sites.map(site => site.category)));
         filterSites(state);
       })
       .addCase(createSite.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isCreateLoading = false;
         state.error = action.payload as string;
       })
       // Update site
@@ -181,6 +174,16 @@ const sitesSlice = createSlice({
       .addCase(deleteSite.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      // Generate description
+      .addCase(GenerateDescription.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(GenerateDescription.fulfilled, (state, action) => {
+        state.generatedescription = action.payload;
+      })
+      .addCase(GenerateDescription.rejected, (state, action) => {
+        state.error = action.payload as string;
       });
   },
 });
@@ -193,7 +196,7 @@ function filterSites(state: SitesState) {
     filtered = filtered.filter(
       (site) =>
         site.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-        site.siteUrl.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+        site.site_url.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
         site.category.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
         (site.description && site.description.toLowerCase().includes(state.searchTerm.toLowerCase()))
     );
